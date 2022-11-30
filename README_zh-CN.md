@@ -76,9 +76,9 @@ python train.py -c ./model_document/FCFRNet/FCFRNet.yaml
 
 ### Depth Completion
 
-| Method  | RMSE    | MAE     | Photo | iRMSE | iMAE  | RMSE1   | RMSE2   |
-|---------|---------|---------|-------|-------|-------|---------|---------|
-| FCFRNet | 784.224 | 222.639 | 0.000 | 2.370 | 1.014 | 784.224 | 784.224 |
+| Method  | RMSE    | MAE     | Photo | iRMSE | iMAE  | 
+|---------|---------|---------|-------|-------|-------|
+| FCFRNet | 784.224 | 222.639 | 0.000 | 2.370 | 1.014 |
 
 
 
