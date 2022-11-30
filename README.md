@@ -74,9 +74,9 @@ You can easily reproduce our results using provided shell scripts!
 
 ### Paddle Completion TestData On KITTI2015
 
-| Method  | RMSE    | MAE     | Photo | iRMSE | iMAE  | RMSE1   | RMSE2   |
-|---------|---------|---------|-------|-------|-------|---------|---------|
-| FCFRNet | 784.224 | 222.639 | 0.000 | 2.370 | 1.014 | 784.224 | 784.224 |
+| Method  | RMSE    | MAE     | Photo | iRMSE | iMAE  | 
+|---------|---------|---------|-------|-------|-------|
+| FCFRNet | 784.224 | 222.639 | 0.000 | 2.370 | 1.014 |
 
 
 
