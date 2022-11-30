@@ -394,12 +394,15 @@ def FCFRNet_train(args):
         print("=> starting training epoch {} ..".format(epoch))
         iterate("train", args, train_loader, model, optim, _logger,epoch)  # train for one epoch
         #result, is_best = iterate_val("val", args, val_loader, model,None, _logger,epoch)  # evaluate on validation set
-        save_checkpoint({ # save checkpoint
-            'epoch': epoch,
-            'model': model.state_dict(),
-            'best_result': _logger.best_result,
-            'optimizer' : optim.state_dict(),
-            'args' : args,
+        parser_save=argparse.ArgumentParser()
+        parser_save.add_argument("-a")
+        args_save=argparse.Namespace(**args)
+        save_checkpoint({  # save checkpoint
+          'epoch': epoch,
+          'model': model.state_dict(),
+          'best_result': _logger.best_result,
+          'optimizer': optim.state_dict(),
+          'args': args_save,
         }, is_best, epoch, _logger.output_directory)
 
     
