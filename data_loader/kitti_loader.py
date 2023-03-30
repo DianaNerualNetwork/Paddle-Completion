@@ -1,15 +1,15 @@
 import os
 import os.path
 import glob
-import fnmatch  # pattern matching
 import numpy as np
+import paddle
+import cv2
 from numpy import linalg as LA
 from random import choice
 from PIL import Image
-import paddle
-import cv2
-from .transforms import Compose,BottomCrop,HorizontalFlip,ColorJitter,ToTensor
-from .pose_estimator import get_pose_pnp
+
+from .transforms import Compose, BottomCrop, HorizontalFlip, ColorJitter, ToTensor
+from utils.pose_estimator import get_pose_pnp
 
 input_options = ['d', 'rgb', 'rgbd', 'g', 'gd']
 
@@ -30,13 +30,15 @@ def load_calib(fname):
     # note: we will take the center crop of the images during augmentation
     # that changes the optical centers, but not focal lengths
     K[0, 2] = K[
-        0,
-        2] - 13  # from width = 1242 to 1216, with a 13-pixel cut on both sides
+                  0,
+                  2] - 13  # from width = 1242 to 1216, with a 13-pixel cut on both sides
     K[1, 2] = K[
-        1,
-        2] - 11.5  # from width = 375 to 352, with a 11.5-pixel cut on both sides
+                  1,
+                  2] - 11.5  # from width = 375 to 352, with a 11.5-pixel cut on both sides
     return K
-# 读取rgb图像
+
+
+
 def rgb_read(filename):
     assert os.path.exists(filename), "file not found: {}".format(filename)
     img_file = Image.open(filename)
@@ -44,7 +46,9 @@ def rgb_read(filename):
     rgb_png = np.array(img_file, dtype='uint8')  # in the range [0,255]
     img_file.close()
     return rgb_png
-#读取深度图像
+
+
+
 def depth_read(filename):
     # loads depth map D from png file
     # and returns it as a numpy array,
@@ -55,20 +59,25 @@ def depth_read(filename):
     img_file.close()
     # make sure we have a proper 16bit depth map here.. not 8bit!
     assert np.max(depth_png) > 255, \
-        "np.max(depth_png)={}, path={}".format(np.max(depth_png),filename)
+        "np.max(depth_png)={}, path={}".format(np.max(depth_png), filename)
     depth = depth_png.astype(np.float) / 256.
     # depth[depth_png == 0] = -1.
     depth = np.expand_dims(depth, -1)
     return depth
+
+
 oheight, owidth = 352, 1216
-#深度图像Dropout
+
+
+
 def drop_depth_measurements(depth, prob_keep):
     # depth pic  dropout
-    mask = np.random.binomial(1, prob_keep, depth.shape) # 符合mean=0
+    mask = np.random.binomial(1, prob_keep, depth.shape)  # 符合mean=0
     depth *= mask
     return depth
 
-#bulid transform
+
+# bulid transform
 def train_transform(rgb, sparse, target, rgb_near, args):
     # s = np.random.uniform(1.0, 1.5) # random scaling
     # angle = np.random.uniform(-5.0, 5.0) # random rotation degrees
@@ -84,11 +93,11 @@ def train_transform(rgb, sparse, target, rgb_near, args):
         sparse = transform_geometric(sparse)
     target = transform_geometric(target)
     if rgb is not None:
-        brightness = np.random.uniform(max(0, 1 - args.jitter),
-                                       1 + args.jitter)
-        contrast = np.random.uniform(max(0, 1 - args.jitter), 1 + args.jitter)
-        saturation = np.random.uniform(max(0, 1 - args.jitter),
-                                       1 + args.jitter)
+        brightness = np.random.uniform(max(0, 1 - args.dataset['jitter']),
+                                       1 + args.dataset['jitter'])
+        contrast = np.random.uniform(max(0, 1 - args.dataset['jitter']), 1 + args.dataset['jitter'])
+        saturation = np.random.uniform(max(0, 1 - args.dataset['jitter']),
+                                       1 + args.dataset['jitter'])
         transform_rgb = Compose([
             ColorJitter(brightness, contrast, saturation, 0),
             transform_geometric
@@ -138,6 +147,7 @@ def handle_gray(rgb, args):
             rgb_ret = rgb
         return rgb_ret, img
 
+
 # rgb_near???
 def get_rgb_near(path, args):
     assert path is not None, "path is None"
@@ -178,17 +188,17 @@ def get_paths_and_transform(split, args):
         transform = train_transform
         glob_d = os.path.join(
             args.dataset['data_folder'],
-         # 'data_depth_velodyne/train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png') 
-           'train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png')
-        #'data_depth_velodyne/train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png'
+            'data_depth_velodyne/train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png')
+            # 'data_rgb/train/*_sync/image_0[2,3]/*.png')
+        # 'data_depth_velodyne/train/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png'
         glob_gt = os.path.join(
             args.dataset['data_folder'],
-            'train/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
+            'depth_annotation/train/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
         )
 
         def get_rgb_paths(p):
             ps = p.split('/')
-            pnew = '/'.join([args.data_folder] + ['kitti'] + ps[-6:-4] +
+            pnew = '/'.join([args.dataset['data_folder']] +["data_rgb"]+["data_rgb"]+  ps[-6:-4] +
                             ps[-2:-1] + ['data'] + ps[-1:])
             return pnew
     elif split == "val":
@@ -196,45 +206,48 @@ def get_paths_and_transform(split, args):
             transform = val_transform
             glob_d = os.path.join(
                 args.dataset['data_folder'],
-              #'data_depth_velodyne/val/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png')
-                  'val/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png')
-            #)
-             
+                'data_depth_velodyne/val/*_sync/proj_depth/velodyne_raw/image_0[2,3]/*.png')
+                # 'data_rgb/val/*_sync/image_0[2,3]/*.png')
+            # )
+
             glob_gt = os.path.join(
                 args.dataset['data_folder'],
-                'val/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
+                'depth_annotation/val/*_sync/proj_depth/groundtruth/image_0[2,3]/*.png'
             )
+
             def get_rgb_paths(p):
                 ps = p.split('/')
-                pnew = '/'.join(ps[:-7] +  
-                    ['kitti']+ps[-6:-4]+ps[-2:-1]+['data']+ps[-1:])
+                pnew = '/'.join([args.dataset['data_folder']] +["data_rgb"]+["data_rgb"]+
+                                ps[-6:-4] + ps[-2:-1] + ['data'] + ps[-1:])
                 return pnew
         elif args.val == "select":
             transform = no_transform
             glob_d = os.path.join(
                 args.dataset['data_folder'],
-                "depth_selection/val_selection_cropped/data_depth_dense_new/*.png")
-                #"depth_selection/val_selection_cropped/velodyne_raw/*.png")
+                "depth_selection/val_selection_cropped/velodyne_raw/*.png")
+            
+            # "depth_selection/val_selection_cropped/velodyne_raw/*.png")
             glob_gt = os.path.join(
-                args.data_folder,
+                args.dataset['data_folder'],
                 "depth_selection/val_selection_cropped/groundtruth_depth/*.png"
             )
+
             def get_rgb_paths(p):
-                return p.replace("groundtruth_depth","image")
+                return p.replace("groundtruth_depth", "image")
     elif split == "test_completion":
         transform = no_transform
         glob_d = os.path.join(
             args.data_folder,
             "depth_selection/test_depth_completion_anonymous/velodyne_raw/*.png"
         )
-        glob_gt = None  #"test_depth_completion_anonymous/"
+        glob_gt = None  # "test_depth_completion_anonymous/"
         glob_rgb = os.path.join(
             args.dataset['data_folder'],
             "depth_selection/test_depth_completion_anonymous/image/*.png")
     elif split == "test_prediction":
         transform = no_transform
         glob_d = None
-        glob_gt = None  #"test_depth_completion_anonymous/"
+        glob_gt = None  # "test_depth_completion_anonymous/"
         glob_rgb = os.path.join(
             args.dataset['data_folder'],
             "depth_selection/test_depth_prediction_anonymous/image/*.png")
@@ -243,11 +256,11 @@ def get_paths_and_transform(split, args):
 
     if glob_gt is not None:
         # train or val-full or val-select
-        paths_d = sorted(glob.glob(glob_d)) 
-        paths_gt = sorted(glob.glob(glob_gt)) 
+        paths_d = sorted(glob.glob(glob_d))
+        paths_gt = sorted(glob.glob(glob_gt))
         paths_rgb = [get_rgb_paths(p) for p in paths_gt]
-        #print("paths_rgb:{}".format(paths_rgb))
-    else:  
+        # print("paths_rgb:{}".format(paths_rgb))
+    else:
         # test only has d or rgb
         paths_rgb = sorted(glob.glob(glob_rgb))
         paths_gt = [None] * len(paths_rgb)
@@ -256,7 +269,8 @@ def get_paths_and_transform(split, args):
                 paths_rgb)  # test_prediction has no sparse depth
         else:
             paths_d = sorted(glob.glob(glob_d))
-
+    
+    
     if len(paths_d) == 0 and len(paths_rgb) == 0 and len(paths_gt) == 0:
         raise (RuntimeError("Found 0 images under {}".format(glob_gt)))
     if len(paths_d) == 0 and args.use_d:
@@ -272,18 +286,18 @@ def get_paths_and_transform(split, args):
     # print(len(paths["rgb"]))
     return paths, transform
 
-    
 
 class KittiDepth(paddle.io.Dataset):
     """A data loader for the Kitti dataset
     """
+
     def __init__(self, split, args):
         self.args = args
         self.split = split
         paths, transform = get_paths_and_transform(split, args)
         self.paths = paths
         self.transform = transform
-        self.K = load_calib()
+        self.K = load_calib(args.dataset['calib_path'])
         self.threshold_translation = 0.1
 
     def __getraw__(self, index):
@@ -301,7 +315,7 @@ class KittiDepth(paddle.io.Dataset):
         rgb, sparse, target, rgb_near = self.__getraw__(index)
         rgb, sparse, target, rgb_near = self.transform(rgb, sparse, target,
                                                        rgb_near, self.args)
-        # print("first_____________>rgb:{sss}")
+        
         r_mat, t_vec = None, None
         if self.split == 'train' and self.args.use_pose:
             success, r_vec, t_vec = get_pose_pnp(rgb, rgb_near, sparse, self.K)
@@ -315,18 +329,17 @@ class KittiDepth(paddle.io.Dataset):
                 t_vec = np.zeros((3, 1))
                 r_mat = np.eye(3)
 
-        rgb, gray = handle_gray(rgb, self.args) # 经过这个rgb会变成none
-        # print("second_____________>rgb:{222}")
-        candidates = {"rgb":rgb, "d":sparse, "gt_depth":target, \
-            "g":gray, "r_mat":r_mat, "t_vec":t_vec, "rgb_near":rgb_near}
-        # print("-------------------->rgb:{}".format(candidates['rgb']))
+        rgb, gray = handle_gray(rgb, self.args)  
+        
+        candidates = {"rgb": rgb, "d": sparse, "gt_depth": target, \
+                      "g": gray, "r_mat": r_mat, "t_vec": t_vec, "rgb_near": rgb_near}
+        
         items = {
-            key: to_float_tensor(val) 
+            key: to_float_tensor(val)
             for key, val in candidates.items() if val is not None
         }
-        # print("=====================>item:{}".format(items))
+        
         return items
 
     def __len__(self):
         return len(self.paths['gt_depth'])
-

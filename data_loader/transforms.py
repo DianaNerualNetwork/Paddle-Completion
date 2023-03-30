@@ -1,22 +1,16 @@
-from __future__ import division
+import numpy as np
+import numbers
+import types
+import skimage.transform
 import paddle
-import math
-import random
+import paddle.vision.transforms.functional as F
+from PIL import Image, ImageEnhance
+from paddle.vision import BaseTransform
 
-from PIL import Image, ImageOps, ImageEnhance
 try:
     import accimage
 except ImportError:
     accimage = None
-
-import numpy as np
-import numbers
-import types
-import collections
-import warnings
-
-import scipy.ndimage.interpolation as itpl
-import skimage.transform
 
 
 def _is_numpy_image(img):
@@ -32,7 +26,35 @@ def _is_pil_image(img):
 
 def _is_tensor_image(img):
     # return torch.is_tensor(img) and img.ndimension() == 3
-    return paddle.is_tensor(img) and img.ndimension() ==3
+    return paddle.is_tensor(img) and img.ndimension() == 3
+
+
+class Rotation(BaseTransform):
+    def __init__(
+            self,
+            degree,
+            interpolation='nearest',
+            expand=False,
+            center=None,
+            fill=0,
+            keys=None,
+    ):
+        super(Rotation, self).__init__(keys)
+        assert isinstance(degree, int) or isinstance(degree, float)
+
+        self.degree = degree if degree > 0 else degree + 360
+        self.interpolation = interpolation
+        self.expand = expand
+        self.center = center
+        self.fill = fill
+
+    def _apply_image(self, img):
+        angle = self.degree
+        img = np.array(img)
+        if img.ndim == 2:
+            img = img[:, :, np.newaxis]
+        return F.rotate(img, angle, self.interpolation, self.expand, self.center, self.fill)
+
 
 def adjust_brightness(img, brightness_factor):
     """Adjust brightness of an Image.
@@ -167,7 +189,7 @@ def adjust_gamma(img, gamma, gain=1):
     img = img.convert('RGB')
 
     np_img = np.array(img, dtype=np.float32)
-    np_img = 255 * gain * ((np_img / 255)**gamma)
+    np_img = 255 * gain * ((np_img / 255) ** gamma)
     np_img = np.uint8(np.clip(np_img, 0, 255))
 
     img = Image.fromarray(np_img, 'RGB').convert(input_mode)
@@ -186,6 +208,7 @@ class Compose(object):
         >>>     transforms.ToTensor(),
         >>> ])
     """
+
     def __init__(self, transforms):
         self.transforms = transforms
 
@@ -200,6 +223,7 @@ class ToTensor(object):
 
     Converts a numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
     """
+
     def __call__(self, img):
         """Convert a ``numpy.ndarray`` to tensor.
 
@@ -216,10 +240,10 @@ class ToTensor(object):
             # handle numpy array
             if img.ndim == 3:
                 # img = torch.from_numpy(img.transpose((2, 0, 1)).copy())
-                img=paddle.to_tensor(img.transpose(2,0,1).copy(),dtype='float32')
+                img = paddle.to_tensor(img.transpose(2, 0, 1).copy(), dtype='float32')
             elif img.ndim == 2:
                 # img = torch.from_numpy(img.copy())
-                img=paddle.to_tensor(img.copy(),dtype='float32')
+                img = paddle.to_tensor(img.copy(), dtype='float32')
             else:
                 raise RuntimeError(
                     'img should be ndarray with 2 or 3 dimensions. Got {}'.
@@ -238,6 +262,7 @@ class NormalizeNumpyArray(object):
         mean (sequence): Sequence of means for each channel.
         std (sequence): Sequence of standard deviations for each channel.
     """
+
     def __init__(self, mean, std):
         self.mean = mean
         self.std = std
@@ -269,6 +294,7 @@ class NormalizeTensor(object):
         mean (sequence): Sequence of means for each channel.
         std (sequence): Sequence of standard deviations for each channel.
     """
+
     def __init__(self, mean, std):
         self.mean = mean
         self.std = std
@@ -295,6 +321,7 @@ class Rotate(object):
     Args:
         angle (float): The rotation angle in degrees.
     """
+
     def __init__(self, angle):
         self.angle = angle
 
@@ -322,6 +349,7 @@ class Resize(object):
         interpolation (int, optional): Desired interpolation. Default is
             ``PIL.Image.BILINEAR``
     """
+
     def __init__(self, size, interpolation='nearest'):
         assert isinstance(size, float)
         self.size = size
@@ -352,6 +380,7 @@ class CenterCrop(object):
             int instead of sequence like (h, w), a square crop (size, size) is
             made.
     """
+
     def __init__(self, size):
         if isinstance(size, numbers.Number):
             self.size = (int(size), int(size))
@@ -416,6 +445,7 @@ class BottomCrop(object):
             int instead of sequence like (h, w), a square crop (size, size) is
             made.
     """
+
     def __init__(self, size):
         if isinstance(size, numbers.Number):
             self.size = (int(size), int(size))
@@ -480,6 +510,7 @@ class Crop(object):
             int instead of sequence like (h, w), a square crop (size, size) is
             made.
     """
+
     def __init__(self, crop):
         self.crop = crop
 
@@ -538,6 +569,7 @@ class Lambda(object):
     Args:
         lambd (function): Lambda/function to be used for transform.
     """
+
     def __init__(self, lambd):
         assert isinstance(lambd, types.LambdaType)
         self.lambd = lambd
@@ -553,6 +585,7 @@ class HorizontalFlip(object):
         do_flip (boolean): whether or not do horizontal flip.
 
     """
+
     def __init__(self, do_flip):
         self.do_flip = do_flip
 
@@ -586,6 +619,7 @@ class ColorJitter(object):
         hue(float): How much to jitter hue. hue_factor is chosen uniformly from
             [-hue, hue]. Should be >=0 and <= 0.5.
     """
+
     def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
         transforms = []
         transforms.append(

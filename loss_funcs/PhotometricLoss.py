@@ -1,5 +1,6 @@
-import paddle.nn as nn 
+import paddle.nn as nn
 import paddle
+
 
 class PhotometricLoss(nn.Layer):
     def __init__(self):
@@ -13,14 +14,14 @@ class PhotometricLoss(nn.Layer):
         assert target.dim(
         ) == 4, "expected target dimension to be 4, but instead got {}.".format(
             target.dim())
-        assert recon.size()==target.size(), "expected recon and target to have the same size, but got {} and {} instead"\
+        assert recon.size() == target.size(), "expected recon and target to have the same size, but got {} and {} instead" \
             .format(recon.size(), target.size())
         diff = (target - recon).abs()
         diff = paddle.sum(diff, 1)  # sum along the color channel
 
         # compare only pixels that are not black
         valid_mask = (paddle.sum(recon, 1) > 0).float() * (paddle.sum(target, 1)
-                                                          > 0).float()
+                                                           > 0).float()
         if mask is not None:
             valid_mask = valid_mask * paddle.squeeze(mask).float()
         valid_mask = valid_mask.byte().detach()

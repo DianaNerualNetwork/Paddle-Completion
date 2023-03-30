@@ -1,9 +1,8 @@
 # PaddleCompletion: A Unified Framework for Depth Completion
-</div>
 
 <div align="center">
 
-[English](README_模板.md)| [简体中文](README_zh-CN.md)
+[English](README.md)| [简体中文](README_zh-CN.md)
 
 </div>
 A lightweight, easy-to-extend, easy-to-learn, high-performance, and for-fair-comparison toolkit based 
@@ -14,46 +13,42 @@ on PaddlePaddle for Depth Completion. It is a part of the Paddledepth project.
 
 As initial version, we support the following algoirthms. We are working on more algorithms. Of course, you are welcome to add your algorithms here.
 
-1. [CFNet (CVPR2021)[1]](CFNet/README.md)
+1. [CSPN (ECCV2018)](model_document/CSPN/README.md)
 2. [FCFRNet (AAAI2021)](model_document/FCFRNet/README.md)
-
+3. [STD (ICRA2019)](model_document/STD/README.md)
+4. 
 Please click the hyperlink of each algorithm for more detailed explanation.
 
 ## Installation
 
-You can either git clone this whole repo by:
+You can git clone this whole repo by:
 
 ```
-git clone https://github.com/imexb9584/Paddle_FCFRNet.git
-cd Paddle-completion
+git clone https://github.com/PaddlePaddle/PaddleDepth
+cd PaddleDepth/PaddleCompletion
 pip install -r requirements.txt
 ```
 
-## Dataset 
-see guidance in [dataset_prepare](data_prepare/data_prepare.md) for dataset preparation.
+This project is based on PaddlePaddle 2.3.2. Please use PaddleCompletion in python 3.9. 
+
+## Dataset
+
+See guidance in [dataset_prepare](data_prepare/data_prepare.md) for dataset preparation.
 
 ## Usage
 
 ### Training
 
-1. Modify the configuration file in the corresponding directories,must confirm ``evaluate`` get `None`.
+1. Modify the .yaml file in the `configs` directory.
+2. Run the `train.py` with specified config, eg: `python train.py --c config/CSPN.yaml`
 
-2.Run the `train.py` with specified config
-```bash
+* We provide shell scripts to help you reproduce our experimental results: `bash scripts/train_cspn.sh`.
 
-python Trainer.py -c ./model_document/FCFRNet/FCFRNet.yaml
-```
+### Evaluation
 
-
-### Test
-1. Modify the configuration file in the corresponding directories,must confirm ``evaluate`` get the path of weight value.
-2. If you want to try run fcfrnet,please download weight from [this](https://aistudio.baidu.com/aistudio/datasetdetail/176607)
-3. Run the `train.py` with specified config
-```bash
-
-python train.py -c ./model_document/FCFRNet/FCFRNet.yaml
-```
-
+1. Modify the configuration file in the `configs` directory.
+2. Download the trained model and put it in the corresponding directory, eg: `weights/cspn/model_best.pdparams`.
+3. Run the `evaluate.py` with specified config, eg: `python evaluate.py --c config/CSPN.yaml`
 
 ## Customization
 
@@ -61,24 +56,27 @@ It is easy to design your own method following the 3 steps:
 
 1. Check whether your method requires new loss functions, if so, add your loss in the `loss_funcs`
 2. Check and write your own model's to `model`
-3. Write your own config file (.yaml) in model_doucument file
-
-
+3. Write your own config file (.yaml)
 
 ## Results
 
-We present results of our implementations on  benchmarks: KITTI2015. 
+We present results of our implementations on 2 popular benchmarks: KITTI and NYU Depth V2. 
 We did not perform careful parameter tuning and simply used the default config files. 
 You can easily reproduce our results using provided shell scripts!
 
 
-### Paddle Completion TestData On KITTI2015
+### KITTI
 
-| Method  | RMSE    | MAE     | Photo | iRMSE | iMAE  | 
-|---------|---------|---------|-------|-------|-------|
-| FCFRNet | 784.224 | 222.639 | 0.000 | 2.370 | 1.014 |
+| Method    | RMSE    | MAE     | iRMSE | iMAE  |
+|-----------| ------- | ------- | ----- | ----- |
+| `FCFRNet` | 784.224 | 222.639 | 2.370 | 1.014 |
+| `STD` | 814.73 | 242.639 | 2.80 | 1.21 |
 
+### NYU Depth V2
 
+| Data    | RMSE   | REL    | DELTA1.02 | DELTA1.05 | DELTA1.10 |
+|---------| ------ | ------ | --------- | --------- | --------- |
+| `CSPN`  | 0.1111 | 0.0151 | 0.8416    | 0.9386    | 0.9729    |
 
 
 ## Contribution
@@ -88,6 +86,7 @@ Feel free to submit issues or emails to ask questions or contribute your code.
 If you would like to implement new features, please submit a issue or emails to discuss with us first.
 
 ## Acknowledgement
+
 PaddleDepth is an open source project that is contributed by researchers and engineers 
 from various colleges and companies. 
 We appreciate all the contributors who implement their methods or add new features, 
@@ -96,9 +95,10 @@ We wish that the toolbox and benchmark could serve the growing research communit
 providing a flexible toolkit to reimplement existing methods and develop their new algorithms.
 
 ## References
+    
+[1] [CSPN: A Compact Spatial Propagation Network for Depth Completion](https://openaccess.thecvf.com/content_ECCV_2018/html/Xinjing_Cheng_Depth_Estimation_via_ECCV_2018_paper.html)
 
-[1] Liu, L., Song, X., Lyu, X., Diao, J., Wang, M., Liu, Y., & Zhang, L. (2021). FCFR-Net: Feature Fusion based Coarse-to-Fine Residual Learning for Depth Completion. Proceedings of the AAAI Conference on Artificial Intelligence, 35(3), 2136-2144. https://doi.org/10.1609/aaai.v35i3.16311
-
+[2] [FCFRNet: Fast and Convergent Feature Refinement Network for Depth Completion](https://doi.org/10.1609/aaai.v35i3.16311)
 
 [comment]: <> (## Citation)
 
@@ -122,6 +122,6 @@ providing a flexible toolkit to reimplement existing methods and develop their n
 
 ## Contact
 
-- [Wenxin Hou](https://houwenxin.github.io/): houwx001@gmail.com
-- [Zhelun Shen](https://github.com/gallenszl): shenzhelun@pku.edu.cn
+- [Juntao Lu](https://github.com/ralph0813): juntao.lu@student.unimelb.edu.au
 - [Bing Xiong](https://github.com/imexb9584): bingxiong9527@siat.edu.cn
+- [Zhelun Shen](https://github.com/gallenszl): shenzhelun@pku.edu.cn

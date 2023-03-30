@@ -15,6 +15,9 @@ class AttrDict(dict):
         else:
             self[key] = value
 
+    def get_dict(self):
+        return self.__dict__
+
 
 def create_attr_dict(yaml_config):
     from ast import literal_eval
@@ -48,6 +51,7 @@ def override(dl, ks, v):
         ks(list): list of keys
         v(str): value to be replaced
     """
+
     def str2num(v):
         try:
             return eval(v)

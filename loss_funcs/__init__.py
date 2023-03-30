@@ -1,3 +1,4 @@
-from loss_funcs.MaskedMSELoss import *
-from loss_funcs.PhotometricLoss import *
-from loss_funcs.smoothness import *
+from .WightedL1Loss import *
+from .MaskedMSELoss import *
+from .PhotometricLoss import *
+from .SmoothnessLoss import *
